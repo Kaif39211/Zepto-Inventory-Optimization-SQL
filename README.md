@@ -1,107 +1,69 @@
-# Zepto E-Commerce: Inventory & Pricing Optimization
+# Zepto Dark Store Optimization: Inventory & Pricing Intelligence
 
-## Project Overview
+## 📌 Project Overview
+This project analyzes dark store inventory data for a quick-commerce platform to identify **margin leakage**, **stagnant capital**, and **physical storage bottlenecks**. 
 
-This project analyzes dark store inventory data for a quick-commerce platform to identify margin 
-leakage, stagnant capital, and physical storage bottlenecks. Using SQL, I engineered custom metrics 
-(like Price-Per-Gram) and built risk profiles to transform raw database rows into actionable supply 
-chain strategies.
+By engineering custom metrics (Price-Per-Gram) and building risk profiles in PostgreSQL, I transformed raw SKU-level data into actionable supply chain strategies to optimize shelf space and protect gross margins.
 
 ---
 
-## Tech Stack & Skills Used
-
-- **Database:** PostgreSQL / Standard SQL
-- **Techniques:** Window Functions (DENSE_RANK, SUM OVER PARTITION BY), CTEs (Common Table 
-  Expressions), Conditional Aggregation (CASE WHEN), Custom Metric Engineering, Subqueries, 
-  Row-level Filtering, Multi-condition Logic, CORR() for correlation analysis
-- **Focus Area:** Inventory Optimization, Margin Protection, Loss Prevention
-
----
-
-## Dataset
-
-- **Table:** `PRODUCT_LEVEL_INVENTORY`
-- **Source:** Simulated dataset modeled after Zepto's dark store SKU structure (for portfolio purposes)
-- **Schema:**
-
-| Column | Type | Description |
-|---|---|---|
-| CATEGORY | VARCHAR | Product category (e.g., Dairy, Snacks, Beverages) |
-| PRODUCT | VARCHAR | Product name / SKU |
-| MRP | INT | Maximum Retail Price |
-| DISCOUNT_PERCENT | INT | Discount applied (%) |
-| AVAILABLE_QUANTITY | INT | Units currently in stock |
-| DISCOUNTED_SELLING_PRICE | INT | Final price after discount |
-| WEIGHT_IN_GMS | INT | Product weight in grams |
-| OUT_OF_STOCK | VARCHAR | Stock status ('TRUE' / 'FALSE') |
-| QUANTITY | INT | Quantity sold or demand proxy |
+## 🛠️ Tech Stack & SQL Proficiency
+- **Database:** PostgreSQL
+- **Advanced SQL Techniques:** - **Window Functions:** `DENSE_RANK()`, `SUM() OVER(PARTITION BY)` for category-level benchmarking.
+    - **CTEs & Subqueries:** To modularize complex logic for multi-stage risk modeling.
+    - **Conditional Aggregation:** `CASE WHEN` within `SUM()` to build a dynamic KPI Dashboard.
+    - **Data Integrity:** `NULLIF()` to handle zero-weight records in Price-Per-Gram calculations.
+    - **Statistical Analysis:** `CORR()` to identify the relationship between discount depth and stock velocity.
 
 ---
 
-## Repository Structure
+## 📊 Dataset Schema
+The analysis is performed on a simulated `PRODUCT_LEVEL_INVENTORY` table, modeled after quick-commerce SKU structures.
 
-- **`setup.sql`** — Table creation, schema definition, and data loading
-- **`Analyse the data of zepto.sql`** — All analysis queries organized into the following sections:
-  - Data Exploration
-  - Price Analysis
-  - Stock Status
-  - Discount Insights
-  - Revenue Simulation
-  - Profit Simulation
-  - Discount Impact Analysis
-  - Weight-Based Pricing & Price-Per-Gram
-  - Revenue Ranking & Top Products
-  - Margin Leakage
-  - Inventory Risk Model
-  - KPI Dashboard
-
----
-
-## Executive Summary & Business Recommendations
-
-Based on the SQL queries and risk profiles generated, I delivered the following operational directives:
-
-### 1. Curb Margin Leakage on Premium Tier
-Data indicates Premium products (MRP > ₹5,000) hold disproportionately high inventory levels while 
-suffering from an 8.36% average discount rate, resulting in severe margin bleed.  
-**Action:** Cap premium discounts at 4% and shift promotional focus to moving mid-range volume.
-
-### 2. Liquidate Stagnant Inventory
-Identified a critical bottleneck of items sitting at maximum capacity (6 units) with zero promotional 
-effort (0% discount), causing a dark store storage crisis.  
-**Action:** Implement an immediate 20–25% flash clearance on these specific SKUs to free up physical 
-shelving space for fast-moving goods.
-
-### 3. Mitigate High-Value Shrinkage Risk
-Price-per-gram analysis isolated the most capital-concentrated assets on the shelves — lightweight, 
-high-MRP products most vulnerable to shrinkage and theft.  
-**Action:** Relocate the Top 10 most expensive-per-gram SKUs to a monitored security zone to reduce 
-inventory shrinkage and capital loss.
-
----
-
-## Key Analytical Queries
-
-| Analysis | Technique Used |
+| Column | Description |
 |---|---|
-| Revenue contribution per product within category | Window Function (SUM OVER PARTITION BY) |
-| Top 3 products per category by revenue | CTE + DENSE_RANK() |
-| Luxury Anchors (high MRP, high stock, over-discounted) | Subquery + AVG OVER PARTITION BY |
-| Price-Per-Gram premium SKU isolation | Custom metric with NULLIF division guard |
-| Discount vs. stock correlation by category | CORR() aggregation |
-| Price band segmentation (Budget / Mid-range / Premium) | CASE WHEN + GROUP BY |
-| KPI Dashboard (5 metrics in one query) | Conditional Aggregation |
+| `CATEGORY` | Product category (Dairy, Snacks, Electronics, etc.) |
+| `MRP` | Maximum Retail Price |
+| `AVAILABLE_QUANTITY` | Units in stock (Max capacity = 6 units per SKU) |
+| `DISCOUNT_PERCENT` | Current promotional discount |
+| `WEIGHT_IN_GMS` | Unit weight for price-per-gram density analysis |
+| `OUT_OF_STOCK` | Boolean flag for inventory availability |
 
 ---
 
-## Assumptions
+## 🚀 Strategic Business Recommendations
 
-- Cost of goods is assumed at **70% of MRP**, giving a gross margin of 30%
-- `AVAILABLE_QUANTITY = 6` is treated as maximum dark store shelf capacity for a single SKU
-- `OUT_OF_STOCK = 'FALSE'` filters active inventory for revenue calculations
-- Price bands defined as: Budget = MRP < ₹2,000 | Mid-range = ₹2,000–₹5,000 | Premium = MRP > ₹5,000
+### 1. Curb Margin Leakage (Premium Tier)
+**Insight:** Premium products (MRP > ₹5,000) show disproportionately high stock levels but carry an average discount of **8.36%**, leading to unnecessary margin bleed on high-ticket items.
+- **Action:** Cap premium-tier discounts at **4%**.
+- **Strategy:** Reallocate the saved promotional budget to the Mid-Range tier to drive higher volume without eroding luxury brand perception.
+
+### 2. Liquidate Stagnant "Shelf-Hoggers"
+**Insight:** Identified a bottleneck of SKUs at maximum storage capacity (6 units) with 0% discounts. These items occupy prime dark store real estate without generating velocity.
+- **Action:** Implement an immediate **20–25% flash clearance** on these specific SKUs.
+- **Result:** Frees up physical shelving for fast-moving consumer goods (FMCG) and improves inventory turnover ratios.
+
+### 3. High-Value Shrinkage Mitigation
+**Insight:** Used Price-Per-Gram analysis to isolate "High-Density Value" assets—lightweight items with high MRPs (e.g., premium saffron, electronics).
+- **Action:** Relocate the **Top 10 High-Price-Per-Gram SKUs** to a "Secure Zone" or monitored shelving.
+- **Result:** Reduces capital loss from inventory shrinkage and operational mishandling.
 
 ---
 
-*Note: Dataset is simulated for portfolio purposes and does not represent actual Zepto business data.*
+## 🔍 Key Analytical Queries & Logic
+
+| Analysis Focus | SQL Technique | Business Logic |
+|---|---|---|
+| **Category Performance** | `SUM() OVER(PARTITION BY)` | Calculated % contribution of each product to total category revenue. |
+| **Inventory Risk Model** | `CASE WHEN` Logic | Segmented stock into 'Healthy', 'Stagnant', and 'Critical' based on velocity vs. quantity. |
+| **Top Performers** | `DENSE_RANK()` | Filtered Top 3 revenue-generating SKUs per category to prioritize restock alerts. |
+| **Price Density** | `MRP / NULLIF(GMS, 0)` | Identified the most expensive items by weight to flag for security protocols. |
+| **KPI Dashboard** | `GROUP BY 1` | Combined Revenue, Avg Discount, and Stock-Out rates into a single executive view. |
+
+---
+
+## 📐 Assumptions & Constraints
+- **COGS:** Assumed at 70% of MRP (30% Gross Margin baseline).
+- **Shelf Capacity:** `AVAILABLE_QUANTITY = 6` represents a full bin/shelf slot in the dark store.
+- **Price Segmentation:** - **Budget:** < ₹2,000
+    - **Mid
