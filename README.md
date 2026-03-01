@@ -21,9 +21,7 @@ Based on the database queries and risk profiles generated, I delivered the follo
 
 3. Mitigate High-Value Shrinkage Risk: Price-per-gram analysis isolated the most highly concentrated capital assets on our shelves. Action: Relocate these top 10 most expensive/lightest SKUs to a monitored security zone to reduce inventory shrinkage and capital loss.
 
-Repository Structure
---------------------
-- 01_Executive_KPI_Dashboard.sql: A macro-level aggregation calculating total active products, categories, potential gross revenue, and total out-of-stock liabilities without grouping.
+
 
 - 02_Advanced_Insights.sql: A deep dive isolating the Top 5 revenue-generating categories, identifying the most over-discounted category, flagging high-risk/high-capacity inventory, and calculating Top 10 premium price-per-gram items.
 
