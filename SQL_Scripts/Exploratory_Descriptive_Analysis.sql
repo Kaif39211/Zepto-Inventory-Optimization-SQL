@@ -1,148 +1,145 @@
---Estimated profit per product (Cost = 70% of MRP)
+-- ============================================================
+-- FILE 2: EXPLORATORY & DESCRIPTIVE ANALYSIS
+-- Zepto Dark Store Inventory Analysis
+-- ============================================================
+
+
+-- ------------------------------------------------------------
+-- REVENUE SIMULATION
+-- Using AVAILABLE_QUANTITY to reflect actual sellable stock
+-- ------------------------------------------------------------
+
+-- Total potential revenue across all in-stock products
 SELECT
-	PRODUCT,
-	MRP,
-	ROUND(MRP * 0.30, 2) AS PROFIT_MARGIN
-FROM
-	PRODUCT_LEVEL_INVENTORY
-	ORDER BY PROFIT_MARGIN DESC;
+    SUM(DISCOUNTED_SELLING_PRICE * AVAILABLE_QUANTITY) AS TOTAL_POTENTIAL_REVENUE 
+FROM PRODUCT_LEVEL_INVENTORY
+WHERE OUT_OF_STOCK = FALSE;
 
-
-
-		 
---Category-wise profit
-
+-- Potential revenue per category
 SELECT
-	*
-FROM
-	PRODUCT_LEVEL_INVENTORY;
+    CATEGORY,
+    SUM(DISCOUNTED_SELLING_PRICE * AVAILABLE_QUANTITY) AS CATEGORY_POTENTIAL_REVENUE
+FROM PRODUCT_LEVEL_INVENTORY
+WHERE OUT_OF_STOCK = FALSE
+GROUP BY CATEGORY
+ORDER BY CATEGORY_POTENTIAL_REVENUE DESC;
 
-ALTER TABLE PRODUCT_LEVEL_INVENTORY
-ADD COLUMN TOTAL_PROFIT NUMERIC(10, 2);
-
-UPDATE PRODUCT_LEVEL_INVENTORY
-SET
-	TOTAL_PROFIT = MRP * 0.30;
-
+-- Top 5 revenue-generating categories
 SELECT
-	CATEGORY,
-	SUM(TOTAL_PROFIT) AS CATEGORY_WISE_PROFIT
-FROM
-	PRODUCT_LEVEL_INVENTORY
-GROUP BY
-	CATEGORY
-ORDER BY
-	CATEGORY_WISE_PROFIT DESC;
+    CATEGORY,
+    SUM(DISCOUNTED_SELLING_PRICE * AVAILABLE_QUANTITY) AS CATEGORY_POTENTIAL_REVENUE
+FROM PRODUCT_LEVEL_INVENTORY
+WHERE OUT_OF_STOCK = FALSE
+GROUP BY CATEGORY
+ORDER BY CATEGORY_POTENTIAL_REVENUE DESC
+LIMIT 5;
 
-
-                                         --Discount Impact Analysis	
-										 
-
---Compare average MRP vs average discounted price by category
-
+-- Top 20 revenue-generating products
 SELECT
-	CATEGORY,
-	ROUND(AVG(MRP), 3) AS AVG_MRP,
-	ROUND(AVG(DISCOUNT_PERCENT), 3) AS AVG_DISCOUNT_PERCENT
-FROM
-	PRODUCT_LEVEL_INVENTORY
-GROUP BY
-	(CATEGORY);
+    PRODUCT,
+    CATEGORY,
+    DISCOUNTED_SELLING_PRICE * AVAILABLE_QUANTITY AS PRODUCT_POTENTIAL_REVENUE
+FROM PRODUCT_LEVEL_INVENTORY
+WHERE OUT_OF_STOCK = FALSE
+ORDER BY PRODUCT_POTENTIAL_REVENUE DESC
+LIMIT 20;
 
 
---Category with highest average discount
+-- ------------------------------------------------------------
+-- PROFIT SIMULATION
+-- Assumption: COGS = 70% of MRP → Gross Margin = 30%
+-- ------------------------------------------------------------
+
+-- Estimated gross profit per product (computed inline — no schema mutation)
 SELECT
-	CATEGORY,
-	ROUND(AVG(DISCOUNT_PERCENT), 3) AS AVG_DISCOUNT_PERCENT
-FROM
-	PRODUCT_LEVEL_INVENTORY
-GROUP BY
-	(CATEGORY);
+    PRODUCT,
+    CATEGORY,
+    MRP,
+    AVAILABLE_QUANTITY,
+    ROUND(MRP * 0.30, 2)                            AS UNIT_PROFIT_MARGIN,
+    ROUND(MRP * 0.30 * AVAILABLE_QUANTITY, 2)       AS TOTAL_STOCK_PROFIT   -- fixed: was ignoring quantity
+FROM PRODUCT_LEVEL_INVENTORY
+WHERE OUT_OF_STOCK = FALSE
+ORDER BY TOTAL_STOCK_PROFIT DESC;
 
-
---Correlation between discountPercent and availableQuantity
-
+-- Category-wise gross profit
 SELECT
-	PRODUCT,
-	DISCOUNT_PERCENT,
-	AVAILABLE_QUANTITY
-FROM
-	PRODUCT_LEVEL_INVENTORY
-ORDER BY
-	DISCOUNT_PERCENT,
-	AVAILABLE_QUANTITY DESC;
+    CATEGORY,
+    ROUND(SUM(MRP * 0.30 * AVAILABLE_QUANTITY), 2) AS CATEGORY_GROSS_PROFIT
+FROM PRODUCT_LEVEL_INVENTORY
+WHERE OUT_OF_STOCK = FALSE
+GROUP BY CATEGORY
+ORDER BY CATEGORY_GROSS_PROFIT DESC;
 
+
+-- ------------------------------------------------------------
+-- DISCOUNT IMPACT ANALYSIS
+-- ------------------------------------------------------------
+
+-- Average MRP vs average discount per category side by side
 SELECT
-	CATEGORY,
-	CORR(DISCOUNT_PERCENT, AVAILABLE_QUANTITY) AS CORRELATION_VALUE
-FROM
-	PRODUCT_LEVEL_INVENTORY
-GROUP BY
-	CATEGORY
-ORDER BY
-	CORRELATION_VALUE DESC;
+    CATEGORY,
+    ROUND(AVG(MRP), 2)              AS AVG_MRP,
+    ROUND(AVG(DISCOUNT_PERCENT), 2) AS AVG_DISCOUNT_PCT,
+    ROUND(AVG(DISCOUNTED_SELLING_PRICE), 2) AS AVG_SELLING_PRICE
+FROM PRODUCT_LEVEL_INVENTORY
+GROUP BY CATEGORY
+ORDER BY AVG_DISCOUNT_PCT DESC;
 
-  --all correlation_values are random--
-
-
---Weight-Based Pricing
-
+-- Category with the single highest average discount
 SELECT
-	PRODUCT,
-	WEIGHT_IN_GMS,
-	MRP
-FROM
-	PRODUCT_LEVEL_INVENTORY
-ORDER BY
-	WEIGHT_IN_GMS DESC;
+    CATEGORY,
+    ROUND(AVG(DISCOUNT_PERCENT), 2) AS AVG_DISCOUNT_PCT
+FROM PRODUCT_LEVEL_INVENTORY
+GROUP BY CATEGORY
+ORDER BY AVG_DISCOUNT_PCT DESC
+LIMIT 1;
 
-
---Price per gram calculation
+-- Discount vs stock correlation per category
+-- Note: a negative value suggests higher discounts correlate with lower stock (potential clearance signal)
 SELECT
-	WEIGHT_IN_GMS
-FROM
-	PRODUCT_LEVEL_INVENTORY
-WHERE
-	WEIGHT_IN_GMS = 0;
+    CATEGORY,
+    ROUND(CORR(DISCOUNT_PERCENT, AVAILABLE_QUANTITY)::NUMERIC, 4) AS DISCOUNT_STOCK_CORRELATION
+FROM PRODUCT_LEVEL_INVENTORY
+GROUP BY CATEGORY
+ORDER BY DISCOUNT_STOCK_CORRELATION DESC;
 
 
+-- ------------------------------------------------------------
+-- WEIGHT-BASED PRICING (Price-Per-Gram Density)
+-- NULLIF guards against division-by-zero on zero-weight records
+-- ------------------------------------------------------------
+
+-- Full price-per-gram listing
 SELECT
-	PRODUCT,
-	MRP,
-	WEIGHT_IN_GMS,
-	MRP / NULLIF(WEIGHT_IN_GMS, 0) AS PRICE_PER_GRAM
-FROM
-	PRODUCT_LEVEL_INVENTORY;
-    
+    PRODUCT,
+    CATEGORY,
+    MRP,
+    WEIGHT_IN_GMS,
+    ROUND(MRP::NUMERIC / NULLIF(WEIGHT_IN_GMS, 0), 4) AS PRICE_PER_GRAM
+FROM PRODUCT_LEVEL_INVENTORY
+ORDER BY PRICE_PER_GRAM DESC NULLS LAST;
 
-
---Most expensive per gram products
-
+-- Top 10 most expensive per gram (high shrinkage risk)
 SELECT
-	PRODUCT,
-	MRP,
-	WEIGHT_IN_GMS,
-	MRP / WEIGHT_IN_GMS AS PRICE_PER_GRAM
-FROM
-	PRODUCT_LEVEL_INVENTORY
-WHERE
-	MRP IS NOT NULL
-	AND WEIGHT_IN_GMS IS NOT NULL
-	AND WEIGHT_IN_GMS <> 0
-ORDER BY
-	PRICE_PER_GRAM DESC;
-  
---Cheapest per gram products
+    PRODUCT,
+    CATEGORY,
+    MRP,
+    WEIGHT_IN_GMS,
+    ROUND(MRP::NUMERIC / WEIGHT_IN_GMS, 4) AS PRICE_PER_GRAM
+FROM PRODUCT_LEVEL_INVENTORY
+WHERE WEIGHT_IN_GMS > 0
+ORDER BY PRICE_PER_GRAM DESC
+LIMIT 10;
+
+-- Top 10 cheapest per gram (bulk/commodity items)
 SELECT
-	PRODUCT,
-	MRP,
-	WEIGHT_IN_GMS,
-	MRP / WEIGHT_IN_GMS AS PRICE_PER_GRAM
-FROM	
-	PRODUCT_LEVEL_INVENTORY
-WHERE
-	MRP IS NOT NULL
-	AND WEIGHT_IN_GMS IS NOT NULL
-	AND WEIGHT_IN_GMS <> 0
-ORDER BY
-	PRICE_PER_GRAM ASC;
+    PRODUCT,
+    CATEGORY,
+    MRP,
+    WEIGHT_IN_GMS,
+    ROUND(MRP::NUMERIC / WEIGHT_IN_GMS, 4) AS PRICE_PER_GRAM
+FROM PRODUCT_LEVEL_INVENTORY
+WHERE WEIGHT_IN_GMS > 0
+ORDER BY PRICE_PER_GRAM ASC
+LIMIT 10;
